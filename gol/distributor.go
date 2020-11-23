@@ -1,8 +1,8 @@
 package gol
 
 import (
-	"fmt"
 	"strconv"
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type distributorChannels struct {
@@ -13,9 +13,6 @@ type distributorChannels struct {
 	ioInput    chan uint8
 }
 
-type cell struct {
-	x, y int
-}
 
 func findAliveNeighbours(world [][]byte, col int, row int) int {
 	aliveNeighbours := 0
@@ -72,14 +69,14 @@ func calculateNextState(p Params, world [][]byte) [][]byte {
 	return newWorld
 }
 
-func calculateAliveCells(p Params, world [][]byte) []cell {
+func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 
-	aliveCells := []cell{}
+	aliveCells := []util.Cell{}
 
 	for x, col := range world {
 		for y, v := range col {
 			if v != 0 {
-				aliveCells = append(aliveCells, cell{y, x})
+				aliveCells = append(aliveCells, util.Cell{y, x})
 			}
 		}
 	}
@@ -105,26 +102,27 @@ func distributor(p Params, c distributorChannels) {
 		for j := 0; j < p.ImageWidth; j++ {
 			world[i][j] = <- c.ioInput
 			if world[i][j] == 255{
-				fmt.Printf("lol")
+				c.events <- CellFlipped{0, util.Cell{i,j}}
 				//send a cell flipped event
 			}
 		}
 	}
 
 	// TODO: For all initially alive cells send a CellFlipped Event.
-	//for i := 0; i < p.ImageHeight*p.ImageWidth; i++ {
-	//if(newWorld[i].){
-
-	//}
-	//}
 
 	turn := p.Turns
 
 	// TODO: Execute all turns of the Game of Life.
-	for i := 0; i < turn; i++ {
+	for i := 1; i <= turn; i++ {
 		world = calculateNextState(p, world)
+		aliveCells := calculateAliveCells(p, world)
+		for _, cell := range aliveCells{
+			c.events <- CellFlipped{0, cell}
+		}
+		c.events <- TurnComplete{i}
 	}
 
+	c.events <- FinalTurnComplete{turn, calculateAliveCells(p, world)}
 
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
 	// 	See event.go for a list of all events.
