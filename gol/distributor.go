@@ -1,22 +1,133 @@
 package gol
 
+import (
+	"fmt"
+	"strconv"
+)
+
 type distributorChannels struct {
-	events    chan<- Event
-	ioCommand chan<- ioCommand
-	ioIdle    <-chan bool
+	events     chan<- Event
+	ioCommand  chan<- ioCommand
+	ioIdle     <-chan bool
+	ioFilename chan<- string
+	ioInput    chan uint8
+}
+
+type cell struct {
+	x, y int
+}
+
+func findAliveNeighbours(world [][]byte, col int, row int) int {
+	aliveNeighbours := 0
+	for _, i := range []int{-1,0,1} {
+		for _, j := range []int{-1,0,1} {
+			if i == 0 && j == 0 {
+				continue
+			}
+
+			living := world[(col+i+len(world))%len(world)][(row+j+len(world[0]))%len(world[0])] !=0
+			if living {
+				aliveNeighbours++
+			}
+		}
+	}
+	return aliveNeighbours
+}
+
+func calculateNextState(p Params, world [][]byte) [][]byte {
+
+	newWorld := make([][]byte, len(world))
+
+	for i := range newWorld {
+		newWorld[i] = make([]byte, len(world[i]))
+		copy(newWorld[i], world[i])
+	}
+
+	for col := 0; col < len(world); col++ {
+		for row := 0; row < len (world[0]); row++ {
+			/*find number of alive neighbours */
+			aliveNeighbours := findAliveNeighbours(world, col, row)
+
+			if world[col][row] !=0 {
+				/* if current cell is not dead */
+
+				if aliveNeighbours < 2 {
+					newWorld[col][row] = 0
+				}
+
+				if aliveNeighbours > 3 {
+					newWorld[col][row] = 0
+				}
+			}
+			if world[col][row] == 0 {
+				/* if current cell is dead */
+
+				if aliveNeighbours == 3 {
+					newWorld[col][row] = 0xFF
+				}
+			}
+		}
+	}
+
+	return newWorld
+}
+
+func calculateAliveCells(p Params, world [][]byte) []cell {
+
+	aliveCells := []cell{}
+
+	for x, col := range world {
+		for y, v := range col {
+			if v != 0 {
+				aliveCells = append(aliveCells, cell{y, x})
+			}
+		}
+	}
+
+	return aliveCells
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
 
 	// TODO: Create a 2D slice to store the world.
-	// TODO: For all initially alive cells send a CellFlipped Event.
+	world := make([][]byte, p.ImageHeight)
+	for i := range world {
+		world[i] = make([]byte, p.ImageWidth)
+	}
 
-	turn := 0
+	height := strconv.Itoa(p.ImageHeight)
+	width := strconv.Itoa(p.ImageWidth)
+
+	c.ioCommand <- ioInput
+	c.ioFilename <- height + "x" + width
+	for i := 0; i < p.ImageHeight; i++ {
+		for j := 0; j < p.ImageWidth; j++ {
+			world[i][j] = <- c.ioInput
+			if world[i][j] == 255{
+				fmt.Printf("lol")
+				//send a cell flipped event
+			}
+		}
+	}
+
+	// TODO: For all initially alive cells send a CellFlipped Event.
+	//for i := 0; i < p.ImageHeight*p.ImageWidth; i++ {
+	//if(newWorld[i].){
+
+	//}
+	//}
+
+	turn := p.Turns
 
 	// TODO: Execute all turns of the Game of Life.
+	for i := 0; i < turn; i++ {
+		world = calculateNextState(p, world)
+	}
+
+
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
-	//		 See event.go for a list of all events.
+	// 	See event.go for a list of all events.
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
