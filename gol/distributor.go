@@ -84,6 +84,17 @@ func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 	return aliveCells
 }
 
+func executeTurn(threadedWorld [][]byte, p Params, c distributorChannels){
+	for i := 1; i <= p.Turns; i++ {
+		threadedWorld = calculateNextState(p, threadedWorld)
+		aliveCells := calculateAliveCells(p, threadedWorld)
+		for _, cell := range aliveCells{
+			c.events <- CellFlipped{0, cell}
+		}
+		c.events <- TurnComplete{i}
+	}
+}
+
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
 
@@ -110,10 +121,9 @@ func distributor(p Params, c distributorChannels) {
 
 	// TODO: For all initially alive cells send a CellFlipped Event.
 
-	turn := p.Turns
-
 	// TODO: Execute all turns of the Game of Life.
-	for i := 1; i <= turn; i++ {
+	/*
+	for i := 1; i <= p.Turns; i++ {
 		world = calculateNextState(p, world)
 		aliveCells := calculateAliveCells(p, world)
 		for _, cell := range aliveCells{
@@ -121,8 +131,37 @@ func distributor(p Params, c distributorChannels) {
 		}
 		c.events <- TurnComplete{i}
 	}
+	*/
 
-	c.events <- FinalTurnComplete{turn, calculateAliveCells(p, world)}
+	// TODO: make a slice of channels for each thread
+
+	channels := make([]chan [][]uint8, p.Turns)
+
+	for i := 0; i < p.Turns; i++ {
+		channels[i] = make(chan [][]uint8)
+	}
+
+	// TODO: run worker function for each channel
+
+	//threadWidth := p.ImageWidth / p.Threads
+
+	newWorlds := make([][][]byte, p.Threads)
+
+	for i := 0; i < p.Threads; i++ {
+		// startX := i*threadWidth
+		// endX := ((i+1)*threadWidth)-1
+
+		newWorlds[i] = make([][]byte, p.ImageHeight)
+
+		for j := range newWorlds[i] {
+			newWorlds[i][j] = world[j]
+		}
+
+		go executeTurn(newWorlds[i], p, c)
+	}
+
+
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world)}
 
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
 	// 	See event.go for a list of all events.
@@ -131,7 +170,7 @@ func distributor(p Params, c distributorChannels) {
 	c.ioCommand <- ioCheckIdle
 	<-c.ioIdle
 
-	c.events <- StateChange{turn, Quitting}
+	c.events <- StateChange{p.Turns, Quitting}
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)
 }
