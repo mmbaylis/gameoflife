@@ -1,8 +1,10 @@
 package gol
 
 import (
+	"fmt"
 	"strconv"
 	"uk.ac.bris.cs/gameoflife/util"
+	"sync"
 )
 
 type distributorChannels struct {
@@ -71,7 +73,7 @@ func calculateNextState(p Params, world [][]byte) [][]byte {
 
 func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 
-	aliveCells := []util.Cell{}
+	var aliveCells []util.Cell
 
 	for x, col := range world {
 		for y, v := range col {
@@ -84,19 +86,20 @@ func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 	return aliveCells
 }
 
-func executeTurn(threadedWorld [][]byte, p Params, c distributorChannels){
-	for i := 1; i <= p.Turns; i++ {
-		threadedWorld = calculateNextState(p, threadedWorld)
-		aliveCells := calculateAliveCells(p, threadedWorld)
-		for _, cell := range aliveCells{
-			c.events <- CellFlipped{0, cell}
-		}
-		c.events <- TurnComplete{i}
-	}
+// don't necessarily need to update the same file you read from??
+func executeATurn(threadedWorld [][]byte, p Params, results chan<- [][]byte, waiter *sync.WaitGroup){
+	defer waiter.Done()
+
+	threadedWorld = calculateNextState(p, threadedWorld)
+
+	results <- threadedWorld
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
+
+	//create WaitGroup
+	var waiter sync.WaitGroup
 
 	// TODO: Create a 2D slice to store the world.
 	world := make([][]byte, p.ImageHeight)
@@ -109,57 +112,78 @@ func distributor(p Params, c distributorChannels) {
 
 	c.ioCommand <- ioInput
 	c.ioFilename <- height + "x" + width
+
+	// add input to world, send cellflipped event for each initially alive cell
+
 	for i := 0; i < p.ImageHeight; i++ {
 		for j := 0; j < p.ImageWidth; j++ {
-			world[i][j] = <- c.ioInput
-			if world[i][j] == 255{
-				c.events <- CellFlipped{0, util.Cell{i,j}}
+			world[i][j] = <-c.ioInput
+			if world[i][j] == 255 {
+				c.events <- CellFlipped{0, util.Cell{i, j}}
 				//send a cell flipped event
 			}
 		}
 	}
 
-	// TODO: For all initially alive cells send a CellFlipped Event.
+	// make single channel to collect results
 
-	// TODO: Execute all turns of the Game of Life.
-	/*
-	for i := 1; i <= p.Turns; i++ {
-		world = calculateNextState(p, world)
-		aliveCells := calculateAliveCells(p, world)
-		for _, cell := range aliveCells{
-			c.events <- CellFlipped{0, cell}
-		}
-		c.events <- TurnComplete{i}
-	}
-	*/
+	results := make(chan [][]byte, p.Threads)
 
-	// TODO: make a slice of channels for each thread
-
-	channels := make([]chan [][]uint8, p.Turns)
-
-	for i := 0; i < p.Turns; i++ {
-		channels[i] = make(chan [][]uint8)
-	}
-
-	// TODO: run worker function for each channel
-
-	//threadWidth := p.ImageWidth / p.Threads
+	// make slices within slice to create split up worlds
 
 	newWorlds := make([][][]byte, p.Threads)
 
+	//each slice should have "width" of p.ImageWidth/p.Threads
+
+	threadWidth := p.ImageWidth/p.Threads
+
+	fmt.Println(threadWidth)
+
 	for i := 0; i < p.Threads; i++ {
-		// startX := i*threadWidth
-		// endX := ((i+1)*threadWidth)-1
+		newWorlds[i] = world
+		fmt.Printf("original world %v %v \n", i, len(newWorlds[i]))
 
-		newWorlds[i] = make([][]byte, p.ImageHeight)
-
-		for j := range newWorlds[i] {
-			newWorlds[i][j] = world[j]
+		startX := threadWidth*i
+		if startX > 0 {
+			startX--
 		}
+		endX := threadWidth*(i+1)
 
-		go executeTurn(newWorlds[i], p, c)
+		fmt.Printf("start %v, end %v \n", startX, endX)
+
+		//make sure there is an additional margin for correct processing
+		columns := newWorlds[i][startX:endX]
+		fmt.Printf("sliced world %v %v \n", i, len(columns))
 	}
 
+	fmt.Println("World sliced")
+
+	// go through each turn, go through each thread, execute turn
+
+	combinedWorld := make([][]byte, p.ImageHeight)
+
+	for i := 1; i <= p.Turns; i++ {
+		for j := 0; j < p.Threads; j++ {
+			waiter.Add(1)
+			go executeATurn(newWorlds[j], p, results, &waiter)
+			combinedWorld = append(combinedWorld, <-results...)
+		}
+		fmt.Printf("combined world turn %v: %v \n", i, len(combinedWorld))
+		waiter.Wait()
+
+		aliveCells := calculateAliveCells(p, combinedWorld)
+
+
+		for _, cell := range aliveCells{
+			fmt.Printf("cell flipping: %v \n", cell)
+			c.events <- CellFlipped{i, cell}
+		}
+
+
+		fmt.Printf("number of alive cells: %v \n", len(aliveCells))
+
+		c.events <- TurnComplete{i}
+	}
 
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world)}
 
