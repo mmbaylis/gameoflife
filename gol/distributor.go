@@ -140,7 +140,6 @@ func distributor(p Params, c distributorChannels) {
 	fmt.Println(threadWidth)
 
 	for i := 0; i < p.Threads; i++ {
-		newWorlds[i] = world
 		fmt.Printf("original world %v %v \n", i, len(newWorlds[i]))
 
 		startX := threadWidth*i
@@ -152,33 +151,34 @@ func distributor(p Params, c distributorChannels) {
 		fmt.Printf("start %v, end %v \n", startX, endX)
 
 		//make sure there is an additional margin for correct processing
-		columns := newWorlds[i][startX:endX]
-		fmt.Printf("sliced world %v %v \n", i, len(columns))
+		newWorlds[i] = world[startX:endX]
+		fmt.Printf("sliced world %v %v \n", i, len(newWorlds[i]))
 	}
 
 	fmt.Println("World sliced")
 
 	// go through each turn, go through each thread, execute turn
 
-	combinedWorld := make([][]byte, p.ImageHeight)
-
 	for i := 1; i <= p.Turns; i++ {
+		var combinedWorld [][]byte
 		for j := 0; j < p.Threads; j++ {
 			waiter.Add(1)
 			go executeATurn(newWorlds[j], p, results, &waiter)
-			combinedWorld = append(combinedWorld, <-results...)
+
+			output := <- results
+			if len(output) != threadWidth {
+				output = output[0:threadWidth]
+			}
+			combinedWorld = append(combinedWorld, output...)
 		}
 		fmt.Printf("combined world turn %v: %v \n", i, len(combinedWorld))
 		waiter.Wait()
 
 		aliveCells := calculateAliveCells(p, combinedWorld)
 
-
 		for _, cell := range aliveCells{
-			fmt.Printf("cell flipping: %v \n", cell)
 			c.events <- CellFlipped{i, cell}
 		}
-
 
 		fmt.Printf("number of alive cells: %v \n", len(aliveCells))
 
