@@ -1,7 +1,7 @@
 package gol
 
 import (
-	"fmt"
+	//"fmt"
 	"strconv"
 	"uk.ac.bris.cs/gameoflife/util"
 	"sync"
@@ -62,7 +62,7 @@ func calculateNextState(p Params, world [][]byte) [][]byte {
 				/* if current cell is dead */
 
 				if aliveNeighbours == 3 {
-					newWorld[col][row] = 0xFF
+					newWorld[col][row] = 255
 				}
 			}
 		}
@@ -71,7 +71,7 @@ func calculateNextState(p Params, world [][]byte) [][]byte {
 	return newWorld
 }
 
-func calculateAliveCells(p Params, world [][]byte) []util.Cell {
+func calculateAliveCells(world [][]byte) []util.Cell {
 
 	var aliveCells []util.Cell
 
@@ -86,7 +86,33 @@ func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 	return aliveCells
 }
 
-// don't necessarily need to update the same file you read from??
+func calculateDeadCells(world [][]byte) []util.Cell {
+
+	var deadCells []util.Cell
+
+	for x, col := range world {
+		for y, v := range col {
+			if v == 0 {
+				deadCells = append(deadCells, util.Cell{y, x})
+			}
+		}
+	}
+
+	return deadCells
+}
+
+func isAlive(givenCell util.Cell, world [][]byte) bool {
+
+	x := givenCell.X
+	y := givenCell.Y
+
+	if world[x][y] == 0 {
+		return false
+	}
+
+	return true
+}
+
 func executeATurn(threadedWorld [][]byte, p Params, results chan<- [][]byte, waiter *sync.WaitGroup){
 	defer waiter.Done()
 
@@ -95,13 +121,27 @@ func executeATurn(threadedWorld [][]byte, p Params, results chan<- [][]byte, wai
 	results <- threadedWorld
 }
 
+func splitWorld(p Params, world[][]byte, threadWidth int) [][][]byte{
+	newWorlds := make([][][]byte, p.Threads)
+	for i := 0; i < p.Threads; i++ {
+		startX := threadWidth*i
+		if startX > 0 {
+			startX--
+		}
+		endX := threadWidth*(i+1)
+
+		newWorlds[i] = world[startX:endX]
+	}
+
+	return newWorlds
+}
+
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
-
 	//create WaitGroup
 	var waiter sync.WaitGroup
 
-	// TODO: Create a 2D slice to store the world.
+	// Create a 2D slice to store the world.
 	world := make([][]byte, p.ImageHeight)
 	for i := range world {
 		world[i] = make([]byte, p.ImageWidth)
@@ -114,11 +154,10 @@ func distributor(p Params, c distributorChannels) {
 	c.ioFilename <- height + "x" + width
 
 	// add input to world, send cellflipped event for each initially alive cell
-
 	for i := 0; i < p.ImageHeight; i++ {
 		for j := 0; j < p.ImageWidth; j++ {
 			world[i][j] = <-c.ioInput
-			if world[i][j] == 255 {
+			if world[i][j] != 0 {
 				c.events <- CellFlipped{0, util.Cell{i, j}}
 				//send a cell flipped event
 			}
@@ -126,66 +165,51 @@ func distributor(p Params, c distributorChannels) {
 	}
 
 	// make single channel to collect results
-
 	results := make(chan [][]byte, p.Threads)
 
-	// make slices within slice to create split up worlds
-
-	newWorlds := make([][][]byte, p.Threads)
-
-	//each slice should have "width" of p.ImageWidth/p.Threads
-
+	// calculate width of each section of world depending on number of threads
 	threadWidth := p.ImageWidth/p.Threads
 
-	fmt.Println(threadWidth)
-
-	for i := 0; i < p.Threads; i++ {
-		fmt.Printf("original world %v %v \n", i, len(newWorlds[i]))
-
-		startX := threadWidth*i
-		if startX > 0 {
-			startX--
-		}
-		endX := threadWidth*(i+1)
-
-		fmt.Printf("start %v, end %v \n", startX, endX)
-
-		//make sure there is an additional margin for correct processing
-		newWorlds[i] = world[startX:endX]
-		fmt.Printf("sliced world %v %v \n", i, len(newWorlds[i]))
-	}
-
-	fmt.Println("World sliced")
-
 	// go through each turn, go through each thread, execute turn
-
 	for i := 1; i <= p.Turns; i++ {
+		// split world according to given threadWidth
+		newWorlds := splitWorld(p, world, threadWidth)
+
 		var combinedWorld [][]byte
+
 		for j := 0; j < p.Threads; j++ {
 			waiter.Add(1)
 			go executeATurn(newWorlds[j], p, results, &waiter)
 
 			output := <- results
 			if len(output) != threadWidth {
-				output = output[0:threadWidth]
+				output = output[1:threadWidth+1]
 			}
 			combinedWorld = append(combinedWorld, output...)
 		}
-		fmt.Printf("combined world turn %v: %v \n", i, len(combinedWorld))
 		waiter.Wait()
 
-		aliveCells := calculateAliveCells(p, combinedWorld)
+		aliveCells := calculateAliveCells(combinedWorld)
+		deadCells := calculateDeadCells(combinedWorld)
 
 		for _, cell := range aliveCells{
-			c.events <- CellFlipped{i, cell}
+			if !isAlive(cell, world) {
+				c.events <- CellFlipped{i, cell}
+			}
 		}
 
-		fmt.Printf("number of alive cells: %v \n", len(aliveCells))
+		for _, cell := range deadCells{
+			if isAlive(cell, world) {
+				c.events <- CellFlipped{i, cell}
+			}
+		}
+
+		world = combinedWorld
 
 		c.events <- TurnComplete{i}
 	}
 
-	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world)}
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(world)}
 
 	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
 	// 	See event.go for a list of all events.
