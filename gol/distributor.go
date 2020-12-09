@@ -3,6 +3,7 @@ package gol
 import (
 	//"fmt"
 	"strconv"
+	"time"
 	"uk.ac.bris.cs/gameoflife/util"
 	"sync"
 )
@@ -13,6 +14,7 @@ type distributorChannels struct {
 	ioIdle     <-chan bool
 	ioFilename chan<- string
 	ioInput    chan uint8
+	tickTurn	chan int
 }
 
 
@@ -24,7 +26,10 @@ func findAliveNeighbours(world [][]byte, col int, row int) int {
 				continue
 			}
 
-			living := world[(col+i+len(world))%len(world)][(row+j+len(world[0]))%len(world[0])] !=0
+			x := (col+i+len(world))%len(world)
+			y := (row+j+len(world[0]))%len(world[0])
+
+			living := world[x][y] !=0
 			if living {
 				aliveNeighbours++
 			}
@@ -86,6 +91,7 @@ func calculateAliveCells(world [][]byte) []util.Cell {
 	return aliveCells
 }
 
+
 func calculateDeadCells(world [][]byte) []util.Cell {
 
 	var deadCells []util.Cell
@@ -101,16 +107,16 @@ func calculateDeadCells(world [][]byte) []util.Cell {
 	return deadCells
 }
 
-func isAlive(givenCell util.Cell, world [][]byte) bool {
 
+func isAlive(givenCell util.Cell, world [][]byte) bool {
 	x := givenCell.X
 	y := givenCell.Y
 
-	if world[x][y] == 0 {
+	if world[x][y] == 255 {
+		return true
+	} else {
 		return false
 	}
-
-	return true
 }
 
 func executeATurn(threadedWorld [][]byte, p Params, results chan<- [][]byte, waiter *sync.WaitGroup){
@@ -121,23 +127,38 @@ func executeATurn(threadedWorld [][]byte, p Params, results chan<- [][]byte, wai
 	results <- threadedWorld
 }
 
-func splitWorld(p Params, world[][]byte, threadWidth int) [][][]byte{
+func splitWorld(p Params, world[][]byte, threadWidth float64) [][][]byte{
+	isDecimal := threadWidth != float64(int(threadWidth))
+	//fmt.Println(isDecimal)
+	//fmt.Println(threadWidth)
+
 	newWorlds := make([][][]byte, p.Threads)
 	for i := 0; i < p.Threads; i++ {
-		startX := threadWidth*i
-		if startX > 0 {
+		startX := int(threadWidth)*i
+		endX := int(threadWidth)*(i+1)
+		if (startX > 0) {
 			startX--
 		}
-		endX := threadWidth*(i+1)
-
+		if (i == (p.Threads-1)) && (isDecimal) {
+			endX = endX + (p.ImageWidth%p.Threads)
+		}
+		//fmt.Printf("start: %v, end: %v \n", startX, endX)
 		newWorlds[i] = world[startX:endX]
 	}
-
 	return newWorlds
+}
+
+func backgroundTicker(c distributorChannels, world [][]byte) {
+	ticker := time.NewTicker(2 * time.Second)
+	for _ = range ticker.C {
+		turn := <- c.tickTurn
+		c.events <- AliveCellsCount{turn, len(calculateAliveCells(world))}
+	}
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
+
 	//create WaitGroup
 	var waiter sync.WaitGroup
 
@@ -164,14 +185,24 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
-	// make single channel to collect results
-	results := make(chan [][]byte, p.Threads)
+	go backgroundTicker(c, world)
+
+	// make slice of channels to collect results
+	results := make([]chan [][]byte, p.Threads)
+
+	for i := 0; i < p.Threads; i++ {
+		results[i] = make(chan [][]byte, 1)
+	}
 
 	// calculate width of each section of world depending on number of threads
-	threadWidth := p.ImageWidth/p.Threads
+	//this will give threadWidth as decimal
+	threadWidth := float64(p.ImageWidth)/float64(p.Threads)
 
 	// go through each turn, go through each thread, execute turn
 	for i := 1; i <= p.Turns; i++ {
+		c.tickTurn <- i
+
+		//fmt.Printf("Turn: %v \n", i)
 		// split world according to given threadWidth
 		newWorlds := splitWorld(p, world, threadWidth)
 
@@ -179,28 +210,30 @@ func distributor(p Params, c distributorChannels) {
 
 		for j := 0; j < p.Threads; j++ {
 			waiter.Add(1)
-			go executeATurn(newWorlds[j], p, results, &waiter)
-
-			output := <- results
-			if len(output) != threadWidth {
-				output = output[1:threadWidth+1]
+			go executeATurn(newWorlds[j], p, results[j], &waiter)
+		}
+		waiter.Wait()
+		for j := 0; j < p.Threads; j++ {
+			output := <- results[j]
+			if len(output) != int(threadWidth) {
+				output = output[1:]
 			}
 			combinedWorld = append(combinedWorld, output...)
 		}
-		waiter.Wait()
+
 
 		aliveCells := calculateAliveCells(combinedWorld)
 		deadCells := calculateDeadCells(combinedWorld)
 
 		for _, cell := range aliveCells{
 			if !isAlive(cell, world) {
-				c.events <- CellFlipped{i, cell}
+				c.events <- CellFlipped{i-1, cell}
 			}
 		}
 
 		for _, cell := range deadCells{
 			if isAlive(cell, world) {
-				c.events <- CellFlipped{i, cell}
+				c.events <- CellFlipped{i-1, cell}
 			}
 		}
 
