@@ -3,9 +3,8 @@ package gol
 import (
 	//"fmt"
 	"strconv"
-	"time"
-	"uk.ac.bris.cs/gameoflife/util"
 	"sync"
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type distributorChannels struct {
@@ -14,7 +13,8 @@ type distributorChannels struct {
 	ioIdle     <-chan bool
 	ioFilename chan<- string
 	ioInput    chan uint8
-	tickTurn	chan int
+	//tickTurn	chan int
+	//tickFinish chan bool
 }
 
 
@@ -148,13 +148,22 @@ func splitWorld(p Params, world[][]byte, threadWidth float64) [][][]byte{
 	return newWorlds
 }
 
+/*
 func backgroundTicker(c distributorChannels, world [][]byte) {
 	ticker := time.NewTicker(2 * time.Second)
+
 	for _ = range ticker.C {
-		turn := <- c.tickTurn
-		c.events <- AliveCellsCount{turn, len(calculateAliveCells(world))}
+		select {
+		case <- c.tickFinish:
+			return
+		default:
+			turn := <- c.tickTurn
+			c.events <- AliveCellsCount{turn, len(calculateAliveCells(world))}
+		}
 	}
 }
+
+ */
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
@@ -185,7 +194,7 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
-	go backgroundTicker(c, world)
+	//go backgroundTicker(c, world)
 
 	// make slice of channels to collect results
 	results := make([]chan [][]byte, p.Threads)
@@ -200,7 +209,7 @@ func distributor(p Params, c distributorChannels) {
 
 	// go through each turn, go through each thread, execute turn
 	for i := 1; i <= p.Turns; i++ {
-		c.tickTurn <- i
+		//c.tickTurn <- i
 
 		//fmt.Printf("Turn: %v \n", i)
 		// split world according to given threadWidth
@@ -227,13 +236,13 @@ func distributor(p Params, c distributorChannels) {
 
 		for _, cell := range aliveCells{
 			if !isAlive(cell, world) {
-				c.events <- CellFlipped{i-1, cell}
+				c.events <- CellFlipped{i, cell}
 			}
 		}
 
 		for _, cell := range deadCells{
 			if isAlive(cell, world) {
-				c.events <- CellFlipped{i-1, cell}
+				c.events <- CellFlipped{i, cell}
 			}
 		}
 
@@ -242,10 +251,13 @@ func distributor(p Params, c distributorChannels) {
 		c.events <- TurnComplete{i}
 	}
 
-	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(world)}
+	/*
+	c.tickFinish <- true
+	close(c.tickFinish)
+	close(c.tickTurn)
+	 */
 
-	// TODO: Send correct Events when required, e.g. CellFlipped, TurnComplete and FinalTurnComplete.
-	// 	See event.go for a list of all events.
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(world)}
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
