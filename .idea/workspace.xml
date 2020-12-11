@@ -3,6 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ea56bad4-818b-4fd9-a5ab-839c0988d18e" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gol/distributor.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/distributor.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gol/gol.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/gol.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,6 +29,9 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
+    <property name="configurable.Global.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Module.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Project.GOPATH.is.expanded" value="true" />
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
@@ -36,6 +41,7 @@
     <property name="node.js.path.for.package.tslint" value="project" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="settings.editor.selected.configurable" value="go.sdk" />
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -52,6 +58,12 @@
       <workItem from="1605783567742" duration="7229000" />
       <workItem from="1606139545008" duration="4161000" />
       <workItem from="1606157144342" duration="2021000" />
+      <workItem from="1606747110580" duration="2115000" />
+      <workItem from="1606757335025" duration="4762000" />
+      <workItem from="1607168724676" duration="584000" />
+      <workItem from="1607169792872" duration="33634000" />
+      <workItem from="1607429785348" duration="19366000" />
+      <workItem from="1607593224812" duration="13703000" />
     </task>
     <servers />
   </component>
@@ -67,9 +79,13 @@
       <screen x="0" y="23" width="1280" height="777" />
     </state>
     <state x="181" y="89" key="#GOROOT/0.23.1280.777@0.23.1280.777" timestamp="1605535828581" />
-    <state x="285" y="124" key="search.everywhere.popup" timestamp="1606146282519">
+    <state x="149" y="39" key="SettingsEditor" timestamp="1607600571655">
+      <screen x="0" y="0" width="1280" height="800" />
+    </state>
+    <state x="149" y="39" key="SettingsEditor/0.0.1280.800@0.0.1280.800" timestamp="1607600571655" />
+    <state x="285" y="124" width="670" height="676" key="search.everywhere.popup" timestamp="1607257434320">
       <screen x="0" y="23" width="1280" height="777" />
     </state>
-    <state x="285" y="124" key="search.everywhere.popup/0.23.1280.777@0.23.1280.777" timestamp="1606146282519" />
+    <state x="285" y="124" width="670" height="676" key="search.everywhere.popup/0.23.1280.777@0.23.1280.777" timestamp="1607257434320" />
   </component>
 </project>
