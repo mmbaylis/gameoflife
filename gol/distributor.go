@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"sync"
 	"uk.ac.bris.cs/gameoflife/util"
-	"fmt"
 )
 
 type distributorChannels struct {
@@ -155,13 +154,12 @@ func splitWorld(p Params, world[][]byte, threadWidth float64) [][][]byte{
 
 		//if first slice, append the far right pixel column to the front
 		if (i==0) {
-			newWorlds[i] = append(world[p.ImageWidth-2:p.ImageWidth-1], newWorlds[i]...)
+			newWorlds[i] = append(world[p.ImageWidth-1:p.ImageWidth], newWorlds[i]...)
 		}
 		//if last slice, append the first pixel column to the end
 		if (i == p.Threads-1) {
 			newWorlds[i] = append(newWorlds[i], world[0:1]...)
 		}
-		fmt.Println(len(newWorlds[i]))
 	}
 
 	// return 3D slice of 2D slices
@@ -253,11 +251,8 @@ func distributor(p Params, c distributorChannels) {
 		// remove overlap from front and end of each slice
 		// append corrected slice to combinedworld
 		for j := 0; j < p.Threads; j++ {
-			fmt.Println("Turn ", i, ", thread ",j)
 			output := <- results[j]
-			fmt.Println("Length pre-trim:", len(output))
-			output = output[1:cap(output)-1]
-			fmt.Println("Length after-trim:",len(output))
+			output = output[1:len(output)-1]
 			combinedWorld = append(combinedWorld, output...)
 		}
 
