@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"sync"
 	"uk.ac.bris.cs/gameoflife/util"
+	"fmt"
 )
 
 type distributorChannels struct {
@@ -64,7 +65,7 @@ func calculateNextState(world [][]byte) [][]byte {
 			if world[col][row] == 0 {
 
 				if aliveNeighbours == 3 {
-					newWorld[col][row] = 255
+					newWorld[col][row] = 0xFF
 				}
 			}
 		}
@@ -126,24 +127,41 @@ func executeATurn(threadedWorld [][]byte, results chan<- [][]byte, waiter *sync.
 
 func splitWorld(p Params, world[][]byte, threadWidth float64) [][][]byte{
 	// identify if threadWidth is decimal, in order to compensate
-	isDecimal := threadWidth != float64(int(threadWidth))
+	intWidth := int(threadWidth)
+	isDecimal := threadWidth != float64(intWidth)
 
 	// make 3D slice to store the 2D slices
 	newWorlds := make([][][]byte, p.Threads)
 
 	for i := 0; i < p.Threads; i++ {
-		startX := int(threadWidth)*i
-		endX := int(threadWidth)*(i+1)
+		startX := intWidth*i
+		endX := intWidth*(i+1)
 
-		if (startX > 0) {
+		//add overlap left-ways
+		if (startX>0) {
 			startX--
 		}
+		//add extra remainder to compensate for decimal number
 		if (i == (p.Threads-1)) && (isDecimal) {
 			endX = endX + (p.ImageWidth%p.Threads)
+		}
+		//add overlap right-ways
+		if (endX<p.ImageWidth){
+			endX = endX+1
 		}
 
 		// slice world according to calculated indices
 		newWorlds[i] = world[startX:endX]
+
+		//if first slice, append the far right pixel column to the front
+		if (i==0) {
+			newWorlds[i] = append(world[p.ImageWidth-2:p.ImageWidth-1], newWorlds[i]...)
+		}
+		//if last slice, append the first pixel column to the end
+		if (i == p.Threads-1) {
+			newWorlds[i] = append(newWorlds[i], world[0:1]...)
+		}
+		fmt.Println(len(newWorlds[i]))
 	}
 
 	// return 3D slice of 2D slices
@@ -217,6 +235,8 @@ func distributor(p Params, c distributorChannels) {
 		// split world according to given threadWidth
 		newWorlds := splitWorld(p, world, threadWidth)
 
+		//fmt.Println("Turn ", i, " split done")
+
 		// create a 2D slice to store the processed world in
 		var combinedWorld [][]byte
 
@@ -230,13 +250,14 @@ func distributor(p Params, c distributorChannels) {
 		waiter.Wait()
 
 		// collect results from each results channel
-		// if the resulting 2D slice is longer than expected (including overlap), remove the leading slice
+		// remove overlap from front and end of each slice
 		// append corrected slice to combinedworld
 		for j := 0; j < p.Threads; j++ {
+			fmt.Println("Turn ", i, ", thread ",j)
 			output := <- results[j]
-			if len(output) != int(threadWidth) {
-				output = output[1:]
-			}
+			fmt.Println("Length pre-trim:", len(output))
+			output = output[1:cap(output)-1]
+			fmt.Println("Length after-trim:",len(output))
 			combinedWorld = append(combinedWorld, output...)
 		}
 

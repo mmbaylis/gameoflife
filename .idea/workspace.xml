@@ -4,7 +4,6 @@
     <list default="true" id="ea56bad4-818b-4fd9-a5ab-839c0988d18e" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gol/distributor.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/distributor.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gol/gol.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/gol.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,6 +63,7 @@
       <workItem from="1607169792872" duration="33634000" />
       <workItem from="1607429785348" duration="19366000" />
       <workItem from="1607593224812" duration="13703000" />
+      <workItem from="1629300456450" duration="6362000" />
     </task>
     <servers />
   </component>
