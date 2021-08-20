@@ -16,8 +16,8 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 	ioFilename := make(chan string)
 	ioInput := make(chan uint8)
 	//ioOutput := make(chan uint8)
-	//tickTurn := make(chan int)
-	//tickFinish := make(chan bool)
+	tickTurn := make(chan tickdata)
+	tickFinish := make(chan bool)
 
 	distributorChannels := distributorChannels{
 		events,
@@ -26,8 +26,8 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 		ioFilename,
 		ioInput,
 		//ioOutput,
-		//tickTurn,
-		//tickFinish,
+		tickTurn,
+		tickFinish,
 	}
 	go distributor(p, distributorChannels)
 

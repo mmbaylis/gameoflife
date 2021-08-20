@@ -3,8 +3,17 @@ package gol
 import (
 	"strconv"
 	"sync"
+	"time"
+
+	//"time"
 	"uk.ac.bris.cs/gameoflife/util"
 )
+
+
+type tickdata struct {
+	turn int
+	cells int
+}
 
 type distributorChannels struct {
 	events     chan<- Event
@@ -13,10 +22,9 @@ type distributorChannels struct {
 	ioFilename chan<- string
 	ioInput    chan uint8
 	//ioOutput	chan uint8
-	//tickTurn	chan int
-	//tickFinish chan bool
+	tickTurn	chan tickdata
+	tickFinish chan bool
 }
-
 
 func findAliveNeighbours(world [][]byte, col int, row int) int {
 	aliveNeighbours := 0
@@ -84,10 +92,8 @@ func calculateAliveCells(world [][]byte) []util.Cell {
 			}
 		}
 	}
-
 	return aliveCells
 }
-
 
 func calculateDeadCells(world [][]byte) []util.Cell {
 
@@ -100,10 +106,8 @@ func calculateDeadCells(world [][]byte) []util.Cell {
 			}
 		}
 	}
-
 	return deadCells
 }
-
 
 func isAlive(givenCell util.Cell, world [][]byte) bool {
 	x := givenCell.X
@@ -137,7 +141,7 @@ func splitWorld(p Params, world[][]byte, threadWidth float64) [][][]byte{
 		endX := intWidth*(i+1)
 
 		//add overlap left-ways
-		if (startX>0) {
+		if startX>0 {
 			startX--
 		}
 		//add extra remainder to compensate for decimal number
@@ -166,23 +170,20 @@ func splitWorld(p Params, world[][]byte, threadWidth float64) [][][]byte{
 	return newWorlds
 }
 
-// removed code for ticker task
-/*
-func backgroundTicker(c distributorChannels, world [][]byte) {
+func backgroundTicker(c distributorChannels) {
 	ticker := time.NewTicker(2 * time.Second)
 
 	for _ = range ticker.C {
 		select {
 		case <- c.tickFinish:
+			ticker.Stop()
 			return
 		default:
-			turn := <- c.tickTurn
-			c.events <- AliveCellsCount{turn, len(calculateAliveCells(world))}
+			result := <- c.tickTurn
+			c.events <- AliveCellsCount{result.turn, result.cells}
 		}
 	}
 }
-
- */
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
@@ -213,7 +214,7 @@ func distributor(p Params, c distributorChannels) {
 		}
 	}
 
-	//go backgroundTicker(c, world)
+	go backgroundTicker(c)
 
 	// make slice of channels to collect results
 	results := make([]chan [][]byte, p.Threads)
@@ -228,12 +229,10 @@ func distributor(p Params, c distributorChannels) {
 
 	// go through each turn, go through each thread, execute turn
 	for i := 1; i <= p.Turns; i++ {
-		//c.tickTurn <- i
+
 
 		// split world according to given threadWidth
 		newWorlds := splitWorld(p, world, threadWidth)
-
-		//fmt.Println("Turn ", i, " split done")
 
 		// create a 2D slice to store the processed world in
 		var combinedWorld [][]byte
@@ -276,17 +275,20 @@ func distributor(p Params, c distributorChannels) {
 
 		// replace the original world with the newly processed world
 		world = combinedWorld
+		
+		cells := len(calculateAliveCells(world))
+		output := tickdata{i,cells}
+		c.tickTurn <- output
 
 		// mark turn as complete
 		c.events <- TurnComplete{i}
 	}
 
-	// removed code for ticker task
-	/*
 	c.tickFinish <- true
 	close(c.tickFinish)
 	close(c.tickTurn)
-	 */
+
+
 
 	// mark that final turn has been completed
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(world)}
