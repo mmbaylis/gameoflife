@@ -3,6 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ea56bad4-818b-4fd9-a5ab-839c0988d18e" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/gol/distributor.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/distributor.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gol/gol.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/gol.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sdl/loop.go" beforeDir="false" afterPath="$PROJECT_DIR$/sdl/loop.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,7 +64,7 @@
       <workItem from="1607169792872" duration="33634000" />
       <workItem from="1607429785348" duration="19366000" />
       <workItem from="1607593224812" duration="13703000" />
-      <workItem from="1629300456450" duration="7780000" />
+      <workItem from="1629300456450" duration="26669000" />
     </task>
     <servers />
   </component>
@@ -74,17 +76,9 @@
     <proxy>direct</proxy>
   </component>
   <component name="WindowStateProjectService">
-    <state x="181" y="89" key="#GOROOT" timestamp="1605535828581">
+    <state x="325" y="124" width="670" height="676" key="search.everywhere.popup" timestamp="1629555769608">
       <screen x="0" y="23" width="1280" height="777" />
     </state>
-    <state x="181" y="89" key="#GOROOT/0.23.1280.777@0.23.1280.777" timestamp="1605535828581" />
-    <state x="149" y="39" key="SettingsEditor" timestamp="1607600571655">
-      <screen x="0" y="0" width="1280" height="800" />
-    </state>
-    <state x="149" y="39" key="SettingsEditor/0.0.1280.800@0.0.1280.800" timestamp="1607600571655" />
-    <state x="285" y="124" width="670" height="676" key="search.everywhere.popup" timestamp="1607257434320">
-      <screen x="0" y="23" width="1280" height="777" />
-    </state>
-    <state x="285" y="124" width="670" height="676" key="search.everywhere.popup/0.23.1280.777@0.23.1280.777" timestamp="1607257434320" />
+    <state x="325" y="124" width="670" height="676" key="search.everywhere.popup/0.23.1280.777@0.23.1280.777" timestamp="1629555769608" />
   </component>
 </project>

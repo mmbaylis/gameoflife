@@ -1,10 +1,20 @@
 package gol
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"uk.ac.bris.cs/gameoflife/util"
+	//"time"
 )
+
+
+/*
+type tickdata struct {
+	turn int
+	cells int
+}
+ */
 
 type distributorChannels struct {
 	events     chan<- Event
@@ -12,8 +22,9 @@ type distributorChannels struct {
 	ioIdle     <-chan bool
 	ioFilename chan<- string
 	ioInput    chan uint8
-	//ioOutput	chan uint8
-	//tickTurn	chan int
+	ioOutput	chan uint8
+	keyPresses	<-chan rune
+	//tickTurn	chan tickdata
 	//tickFinish chan bool
 }
 
@@ -166,9 +177,10 @@ func splitWorld(p Params, world[][]byte, threadWidth float64) [][][]byte{
 	return newWorlds
 }
 
+
 // removed code for ticker task
 /*
-func backgroundTicker(c distributorChannels, world [][]byte) {
+func backgroundTicker(c distributorChannels) {
 	ticker := time.NewTicker(2 * time.Second)
 
 	for _ = range ticker.C {
@@ -183,6 +195,33 @@ func backgroundTicker(c distributorChannels, world [][]byte) {
 }
 
  */
+
+func generatePGM(p Params, c distributorChannels, w [][]byte, i int){
+	turn := strconv.Itoa(i)
+	height := strconv.Itoa(p.ImageHeight)
+	width := strconv.Itoa(p.ImageWidth)
+	c.ioCommand <- ioOutput
+	c.ioFilename <- height + "x" + width + "x" + turn
+
+	for i := 0; i < p.ImageHeight; i++ {
+		for j := 0; j < p.ImageWidth; j++ {
+			c.ioOutput <- w[i][j]
+		}
+	}
+}
+
+func terminateProgram(c distributorChannels, turns int) {
+	// Make sure that the Io has finished any output before exiting.
+	c.ioCommand <- ioCheckIdle
+	<-c.ioIdle
+
+	close(c.ioOutput)
+
+	c.events <- StateChange{turns, Quitting}
+	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
+	close(c.events)
+}
+
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
@@ -212,8 +251,7 @@ func distributor(p Params, c distributorChannels) {
 			}
 		}
 	}
-
-	//go backgroundTicker(c, world)
+	//go backgroundTicker(c)
 
 	// make slice of channels to collect results
 	results := make([]chan [][]byte, p.Threads)
@@ -228,6 +266,7 @@ func distributor(p Params, c distributorChannels) {
 
 	// go through each turn, go through each thread, execute turn
 	for i := 1; i <= p.Turns; i++ {
+
 		//c.tickTurn <- i
 
 		// split world according to given threadWidth
@@ -251,8 +290,8 @@ func distributor(p Params, c distributorChannels) {
 		// remove overlap from front and end of each slice
 		// append corrected slice to combinedworld
 		for j := 0; j < p.Threads; j++ {
-			output := <- results[j]
-			output = output[1:len(output)-1]
+			output := <-results[j]
+			output = output[1 : len(output)-1]
 			combinedWorld = append(combinedWorld, output...)
 		}
 
@@ -261,14 +300,14 @@ func distributor(p Params, c distributorChannels) {
 		deadCells := calculateDeadCells(combinedWorld)
 
 		// if a cell is alive, but was dead in the previous state, send a CellFlipped event
-		for _, cell := range aliveCells{
+		for _, cell := range aliveCells {
 			if !isAlive(cell, world) {
 				c.events <- CellFlipped{i, cell}
 			}
 		}
 
 		// if a cell is dead, but was alive in the previous state, send a CellFlipped event
-		for _, cell := range deadCells{
+		for _, cell := range deadCells {
 			if isAlive(cell, world) {
 				c.events <- CellFlipped{i, cell}
 			}
@@ -277,34 +316,81 @@ func distributor(p Params, c distributorChannels) {
 		// replace the original world with the newly processed world
 		world = combinedWorld
 
+		//if signal comes from keypresses, perform the requested function
+
+		select {
+		case key := <-c.keyPresses:
+			switch key {
+			case 115:
+				//s pressed
+				fmt.Println("PGM generated")
+				generatePGM(p,c,world,i)
+			case 113:
+				//q pressed
+				fmt.Println("PGM generated")
+				generatePGM(p,c,world,i)
+				c.events <- TurnComplete{i}
+				c.events <- FinalTurnComplete{i, calculateAliveCells(world)}
+				terminateProgram(c,i)
+				return
+			case 112:
+				//s pressed
+				fmt.Println("Paused at turn:", i)
+				paused := true
+				for {
+					select {
+					case pressed := <-c.keyPresses:
+						if (pressed == 112){
+						fmt.Println("Continuing")
+						paused = false
+						}
+					default:
+						//nada
+					}
+					if !paused {
+						break
+					}
+				}
+
+			default:
+				fmt.Println("command not recognised")
+			}
+		default:
+			//ok
+		}
+
+		/*
+		cells := len(calculateAliveCells(world))
+		output := tickdata{i,cells}
+		c.tickTurn <- output
+
+		 */
+
 		// mark turn as complete
 		c.events <- TurnComplete{i}
 	}
 
-	// removed code for ticker task
 	/*
 	c.tickFinish <- true
 	close(c.tickFinish)
 	close(c.tickTurn)
 	 */
-
 	// mark that final turn has been completed
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(world)}
 
-	// removed code to output final state of board as pgm
-	/*a
+	//code to output final state of board as pgm
+
+	//command, then filename, then bytes
+	turns := strconv.Itoa(p.Turns)
+	c.ioCommand <- ioOutput
+	c.ioFilename <- height + "x" + width + "x" + turns
+
 	for i := 0; i < p.ImageHeight; i++ {
 		for j := 0; j < p.ImageWidth; j++ {
 			c.ioOutput <- world[i][j]
 		}
 	}
-	 */
 
-	// Make sure that the Io has finished any output before exiting.
-	c.ioCommand <- ioCheckIdle
-	<-c.ioIdle
-
-	c.events <- StateChange{p.Turns, Quitting}
-	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
-	close(c.events)
+	terminateProgram(c, p.Turns)
 }
+
