@@ -272,8 +272,6 @@ func distributor(p Params, c distributorChannels) {
 		// split world according to given threadWidth
 		newWorlds := splitWorld(p, world, threadWidth)
 
-		//fmt.Println("Turn ", i, " split done")
-
 		// create a 2D slice to store the processed world in
 		var combinedWorld [][]byte
 
@@ -334,7 +332,7 @@ func distributor(p Params, c distributorChannels) {
 				terminateProgram(c,i)
 				return
 			case 112:
-				//s pressed
+				//p pressed
 				fmt.Println("Paused at turn:", i)
 				paused := true
 				for {

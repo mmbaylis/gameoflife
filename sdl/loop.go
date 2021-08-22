@@ -18,16 +18,12 @@ sdlLoop:
 				switch e.Keysym.Sym {
 				case sdl.K_p:
 					keyPresses <- 'p'
-					fmt.Println("p pressed")
 				case sdl.K_s:
 					keyPresses <- 's'
-					fmt.Println("s pressed")
 				case sdl.K_q:
 					keyPresses <- 'q'
-					fmt.Println("q pressed")
 				case sdl.K_k:
 					keyPresses <- 'k'
-					fmt.Println("k pressed")
 				}
 			}
 		}
