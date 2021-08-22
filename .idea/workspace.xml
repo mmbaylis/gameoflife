@@ -2,14 +2,22 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ea56bad4-818b-4fd9-a5ab-839c0988d18e" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/gol/distributor.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/distributor.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gol/gol.go" beforeDir="false" afterPath="$PROJECT_DIR$/gol/gol.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sdl/loop.go" beforeDir="false" afterPath="$PROJECT_DIR$/sdl/loop.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/benchmark_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
   </component>
   <component name="GOROOT" path="/usr/local/go" />
   <component name="Git.Settings">
@@ -25,6 +33,7 @@
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -42,6 +51,48 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="settings.editor.selected.configurable" value="go.sdk" />
+  </component>
+  <component name="RunManager" selected="Go Test.BenchmarkGol in uk.ac.bris.cs/gameoflife">
+    <configuration name="BenchmarkGol in uk.ac.bris.cs/gameoflife" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="gol-skeleton-2020-main" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gobench" />
+      <kind value="PACKAGE" />
+      <package value="uk.ac.bris.cs/gameoflife" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^BenchmarkGol$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="BenchmarkGol10x100 in uk.ac.bris.cs/gameoflife" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="gol-skeleton-2020-main" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gobench" />
+      <kind value="PACKAGE" />
+      <package value="uk.ac.bris.cs/gameoflife" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^BenchmarkGol10x100$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="BenchmarkGol1x25 in uk.ac.bris.cs/gameoflife" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="gol-skeleton-2020-main" />
+      <working_directory value="$PROJECT_DIR$" />
+      <framework value="gobench" />
+      <kind value="PACKAGE" />
+      <package value="uk.ac.bris.cs/gameoflife" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^BenchmarkGol1x25$" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Test.BenchmarkGol in uk.ac.bris.cs/gameoflife" />
+        <item itemvalue="Go Test.BenchmarkGol1x25 in uk.ac.bris.cs/gameoflife" />
+        <item itemvalue="Go Test.BenchmarkGol10x100 in uk.ac.bris.cs/gameoflife" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -65,6 +116,7 @@
       <workItem from="1607429785348" duration="19366000" />
       <workItem from="1607593224812" duration="13703000" />
       <workItem from="1629300456450" duration="26669000" />
+      <workItem from="1629579835485" duration="2563000" />
     </task>
     <servers />
   </component>
@@ -76,6 +128,22 @@
     <proxy>direct</proxy>
   </component>
   <component name="WindowStateProjectService">
+    <state width="1202" height="204" key="GridCell.Tab.0.bottom" timestamp="1629636203024">
+      <screen x="0" y="23" width="1280" height="777" />
+    </state>
+    <state width="1202" height="204" key="GridCell.Tab.0.bottom/0.23.1280.777@0.23.1280.777" timestamp="1629636203024" />
+    <state width="1202" height="204" key="GridCell.Tab.0.center" timestamp="1629636203023">
+      <screen x="0" y="23" width="1280" height="777" />
+    </state>
+    <state width="1202" height="204" key="GridCell.Tab.0.center/0.23.1280.777@0.23.1280.777" timestamp="1629636203023" />
+    <state width="1202" height="204" key="GridCell.Tab.0.left" timestamp="1629636203023">
+      <screen x="0" y="23" width="1280" height="777" />
+    </state>
+    <state width="1202" height="204" key="GridCell.Tab.0.left/0.23.1280.777@0.23.1280.777" timestamp="1629636203023" />
+    <state width="1202" height="204" key="GridCell.Tab.0.right" timestamp="1629636203024">
+      <screen x="0" y="23" width="1280" height="777" />
+    </state>
+    <state width="1202" height="204" key="GridCell.Tab.0.right/0.23.1280.777@0.23.1280.777" timestamp="1629636203024" />
     <state x="325" y="124" width="670" height="676" key="search.everywhere.popup" timestamp="1629555769608">
       <screen x="0" y="23" width="1280" height="777" />
     </state>
